@@ -124,6 +124,18 @@
             box-shadow: 0 5px 15px rgba(233, 30, 99, 0.15);
         }
         
+        .video-note {
+            margin-top: 10px;
+            font-style: italic;
+            color: #e91e63;
+            background-color: #fce4ec;
+            padding: 10px 15px;
+            border-radius: 30px;
+            display: inline-block;
+            max-width: 560px;
+            font-size: 0.95rem;
+        }
+        
         .resources {
             background-color: #fafafa;
             border-radius: 10px;
@@ -374,7 +386,7 @@
             text-decoration: underline;
         }
         
-        /* --- Poster embed section (bigger, with zoom, no comments) --- */
+        /* --- Poster embed section (bigger, with 5x zoom) --- */
         .poster-embed {
             background-color: white;
             border-radius: 15px;
@@ -427,14 +439,14 @@
             background-color: #fafafa;
             border-radius: 10px;
             padding: 20px;
-            min-height: 600px; /* bigger than before */
+            min-height: 600px;
             border: 1px solid #fce4ec;
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
             transition: all 0.2s ease;
-            overflow: auto; /* allow scrolling if zoomed */
+            overflow: auto;
         }
 
         .poster-image-container {
@@ -447,18 +459,18 @@
 
         .poster-image {
             max-width: 100%;
-            max-height: 550px; /* increased from 500px */
+            max-height: 550px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             display: block;
             margin: 0 auto;
             cursor: zoom-in;
-            transition: all 0.2s ease;
+            transition: transform 0.2s ease;
         }
 
         .poster-image.zoomed {
             cursor: zoom-out;
-            transform: scale(1.5); /* zoom factor */
+            transform: scale(5); /* 5x zoom */
         }
 
         .poster-caption {
@@ -591,13 +603,13 @@
     
     <div class="container">
 
-        <!-- Poster embed section - bigger, with zoom, no instructional comments -->
+        <!-- Poster embed section - bigger, with 5x zoom, no instructional comments -->
         <div class="poster-embed">
             <div class="poster-header">
                 <h2><i class="fas fa-image" style="color: #e91e63;"></i> CMT Poster</h2>
                 <div class="poster-controls">
                     <button class="zoom-btn" id="zoom-poster-btn">
-                        <i class="fas fa-search-plus"></i> Zoom
+                        <i class="fas fa-search-plus"></i> Zoom (5x)
                     </button>
                 </div>
             </div>
@@ -654,14 +666,14 @@
                 <!-- Thumbnails will be dynamically generated here -->
             </div>
             
-            <!-- Podcast + Kahoot links (unchanged, kahoot right next to podcast) -->
+            <!-- Podcast + Kahoot links (unchanged) -->
             <div class="instructions">
                 <div class="link-item">
                     <i class="fas fa-podcast"></i>
                     <span><strong>Podcast:</strong> <a href="#" target="_blank">Click here to listen</a> (insert link)</span>
                 </div>
                 <div class="link-item">
-                    <i class="fab fa-kaggle"></i> <!-- using kaggle icon as placeholder for Kahoot -->
+                    <i class="fab fa-kaggle"></i>
                     <span><strong>Kahoot!</strong> <a href="#" target="_blank">Play learning game</a> (insert link)</span>
                 </div>
             </div>
@@ -688,6 +700,10 @@
                 <div class="video-container">
                     <h3>Understanding CMT</h3>
                     <iframe src="https://www.youtube.com/embed/zqVIQC7-2YI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <!-- New note below video -->
+                    <div class="video-note">
+                        <i class="fas fa-headphones"></i> Please listen to Hannah Joseph on her experiences as a student with CMT till time stamp 7:05 in the video.
+                    </div>
                 </div>
             </div>
             
@@ -742,7 +758,7 @@
     </footer>
     
     <script>
-        // --- Poster loader with zoom functionality ---
+        // --- Poster loader with 5x zoom functionality ---
         (function loadPoster() {
             const posterContainer = document.getElementById('poster-image-container');
             const loadingSpinner = document.getElementById('poster-loading');
@@ -755,7 +771,6 @@
             errorDiv.style.display = 'none';
 
             const img = new Image();
-            // Exact filename requested
             img.src = 'Charcot-Marie-Tooth Poster.jpg';
             img.alt = 'CMT Informational Poster';
             img.className = 'poster-image';
@@ -764,34 +779,32 @@
             img.onload = function() {
                 posterContainer.innerHTML = `
                     <img src="${img.src}" alt="${img.alt}" class="poster-image" id="poster-img">
-                    <p class="poster-caption">Charcot-Marie-Tooth Disease overview – click image or use zoom button</p>
+                    <p class="poster-caption">Charcot-Marie-Tooth Disease overview – click image or use zoom button (5x)</p>
                 `;
                 loadingSpinner.style.display = 'none';
                 posterContainer.style.display = 'block';
 
-                // Re-attach zoom functionality after image is loaded
                 const posterImg = document.getElementById('poster-img');
                 if (posterImg) {
-                    // Click on image toggles zoom
+                    // Click on image toggles 5x zoom
                     posterImg.addEventListener('click', function(e) {
                         e.stopPropagation();
                         this.classList.toggle('zoomed');
-                        // Update button icon/text
                         if (this.classList.contains('zoomed')) {
-                            zoomBtn.innerHTML = '<i class="fas fa-search-minus"></i> Zoom out';
+                            zoomBtn.innerHTML = '<i class="fas fa-search-minus"></i> Zoom out (5x)';
                         } else {
-                            zoomBtn.innerHTML = '<i class="fas fa-search-plus"></i> Zoom';
+                            zoomBtn.innerHTML = '<i class="fas fa-search-plus"></i> Zoom (5x)';
                         }
                     });
 
-                    // Zoom button toggles zoom
+                    // Zoom button toggles 5x zoom
                     zoomBtn.addEventListener('click', function() {
                         if (posterImg.classList.contains('zoomed')) {
                             posterImg.classList.remove('zoomed');
-                            zoomBtn.innerHTML = '<i class="fas fa-search-plus"></i> Zoom';
+                            zoomBtn.innerHTML = '<i class="fas fa-search-plus"></i> Zoom (5x)';
                         } else {
                             posterImg.classList.add('zoomed');
-                            zoomBtn.innerHTML = '<i class="fas fa-search-minus"></i> Zoom out';
+                            zoomBtn.innerHTML = '<i class="fas fa-search-minus"></i> Zoom out (5x)';
                         }
                     });
                 }
@@ -800,21 +813,19 @@
             img.onerror = function() {
                 loadingSpinner.style.display = 'none';
                 errorDiv.style.display = 'block';
-                // Show placeholder
                 posterContainer.innerHTML = `<div class="poster-placeholder">
                     <i class="fas fa-image"></i>
                     <p>Poster image will appear here</p>
                     <p style="font-size:0.8rem;">Place your file: <strong>Charcot-Marie-Tooth Poster.jpg</strong></p>
                 </div>`;
                 posterContainer.style.display = 'block';
-                // Disable zoom button if image missing
                 zoomBtn.disabled = true;
                 zoomBtn.style.opacity = 0.5;
                 zoomBtn.style.cursor = 'not-allowed';
             };
         })();
 
-        // --- Slideshow code (unchanged, exactly as original) ---
+        // --- Slideshow code (unchanged) ---
         const totalSlides = 8;
         const slideTitles = [
             "Understanding Charcot-Marie-Tooth (CMT)",
@@ -827,7 +838,6 @@
             "Slide References for CMT"
         ];
         
-        // DOM Elements
         const slideContainer = document.getElementById('slide-image-container');
         const thumbnailsContainer = document.getElementById('slide-thumbnails');
         const currentSlideElement = document.getElementById('current-slide');
@@ -837,29 +847,23 @@
         const loadingSpinner = document.getElementById('loading-spinner');
         const errorMessage = document.getElementById('error-message');
         
-        // Current slide index
         let currentSlideIndex = 0;
         
-        // Initialize
         totalSlidesElement.textContent = totalSlides;
         createThumbnails();
         loadSlide(currentSlideIndex);
         
-        // Function to load a slide
         function loadSlide(index) {
-            // Show loading spinner
             loadingSpinner.style.display = 'flex';
             slideContainer.style.display = 'none';
             errorMessage.style.display = 'none';
             
-            // Create new image
             const slideNumber = index + 1;
             const img = new Image();
             img.src = `Slide${slideNumber}.jpg`;
             img.alt = slideTitles[index];
             img.className = 'slide-image';
             
-            // When image loads successfully
             img.onload = function() {
                 slideContainer.innerHTML = `
                     <img src="${img.src}" alt="${img.alt}" class="slide-image">
@@ -869,28 +873,23 @@
                 slideContainer.style.display = 'block';
                 currentSlideElement.textContent = slideNumber;
                 
-                // Update button states
                 prevButton.disabled = index === 0;
                 nextButton.disabled = index === totalSlides - 1;
                 
-                // Update active thumbnail
                 updateActiveThumbnail(index);
             };
             
-            // If image fails to load
             img.onerror = function() {
                 loadingSpinner.style.display = 'none';
                 errorMessage.style.display = 'block';
                 currentSlideElement.textContent = slideNumber;
                 
-                // Still update buttons and thumbnails
                 prevButton.disabled = index === 0;
                 nextButton.disabled = index === totalSlides - 1;
                 updateActiveThumbnail(index);
             };
         }
         
-        // Create thumbnail navigation
         function createThumbnails() {
             thumbnailsContainer.innerHTML = '';
             
@@ -899,7 +898,6 @@
                 thumbnail.className = `thumbnail ${i === 0 ? 'active' : ''}`;
                 thumbnail.title = `Slide ${i + 1}: ${slideTitles[i]}`;
                 
-                // Try to load thumbnail image
                 const thumbImg = new Image();
                 thumbImg.src = `Slide${i + 1}.jpg`;
                 
@@ -908,7 +906,6 @@
                 };
                 
                 thumbImg.onerror = function() {
-                    // If image doesn't load, show slide number
                     thumbnail.innerHTML = `<div class="thumbnail-number">${i + 1}</div>`;
                 };
                 
@@ -921,7 +918,6 @@
             }
         }
         
-        // Update active thumbnail
         function updateActiveThumbnail(index) {
             const thumbnails = document.querySelectorAll('.thumbnail');
             thumbnails.forEach((thumb, i) => {
@@ -933,7 +929,6 @@
             });
         }
         
-        // Event listeners for buttons
         prevButton.addEventListener('click', () => {
             if (currentSlideIndex > 0) {
                 currentSlideIndex--;
@@ -948,7 +943,6 @@
             }
         });
         
-        // Keyboard navigation
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowLeft' && currentSlideIndex > 0) {
                 currentSlideIndex--;
