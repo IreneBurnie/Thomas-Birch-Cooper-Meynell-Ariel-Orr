@@ -386,7 +386,7 @@
             text-decoration: underline;
         }
         
-        /* --- Poster embed section (bigger, with 5x zoom) --- */
+        /* --- Poster embed section (bigger, with 5-level zoom) --- */
         .poster-embed {
             background-color: white;
             border-radius: 15px;
@@ -414,6 +414,7 @@
         .poster-controls {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
 
         .zoom-btn {
@@ -433,6 +434,18 @@
 
         .zoom-btn:hover {
             background-color: #f06292;
+        }
+
+        .zoom-level-indicator {
+            background-color: #fce4ec;
+            color: #e91e63;
+            padding: 5px 12px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .poster-display {
@@ -468,10 +481,12 @@
             transition: transform 0.2s ease;
         }
 
-        .poster-image.zoomed {
-            cursor: zoom-out;
-            transform: scale(5); /* 5x zoom */
-        }
+        /* Zoom levels 1-5 applied via inline style in JS */
+        .poster-image.zoom-level-1 { transform: scale(1); }
+        .poster-image.zoom-level-2 { transform: scale(2); }
+        .poster-image.zoom-level-3 { transform: scale(3); }
+        .poster-image.zoom-level-4 { transform: scale(4); }
+        .poster-image.zoom-level-5 { transform: scale(5); }
 
         .poster-caption {
             margin-top: 15px;
@@ -603,13 +618,16 @@
     
     <div class="container">
 
-        <!-- Poster embed section - bigger, with 5x zoom, no instructional comments -->
+        <!-- Poster embed section - bigger, with 5-level zoom (1x to 5x) -->
         <div class="poster-embed">
             <div class="poster-header">
                 <h2><i class="fas fa-image" style="color: #e91e63;"></i> CMT Poster</h2>
                 <div class="poster-controls">
+                    <span class="zoom-level-indicator" id="zoom-level-display">
+                        <i class="fas fa-search"></i> 1x
+                    </span>
                     <button class="zoom-btn" id="zoom-poster-btn">
-                        <i class="fas fa-search-plus"></i> Zoom (5x)
+                        <i class="fas fa-search-plus"></i> Zoom +
                     </button>
                 </div>
             </div>
@@ -700,7 +718,7 @@
                 <div class="video-container">
                     <h3>Understanding CMT</h3>
                     <iframe src="https://www.youtube.com/embed/zqVIQC7-2YI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    <!-- New note below video -->
+                    <!-- Note below video (exactly as requested) -->
                     <div class="video-note">
                         <i class="fas fa-headphones"></i> Please listen to Hannah Joseph on her experiences as a student with CMT till time stamp 7:05 in the video.
                     </div>
@@ -758,12 +776,15 @@
     </footer>
     
     <script>
-        // --- Poster loader with 5x zoom functionality ---
+        // --- Poster loader with 5-level zoom (cycles 1x → 2x → 3x → 4x → 5x → back to 1x) ---
         (function loadPoster() {
             const posterContainer = document.getElementById('poster-image-container');
             const loadingSpinner = document.getElementById('poster-loading');
             const errorDiv = document.getElementById('poster-error');
             const zoomBtn = document.getElementById('zoom-poster-btn');
+            const zoomLevelDisplay = document.getElementById('zoom-level-display');
+            
+            let currentZoomLevel = 1; // 1 = 1x, 2 = 2x, ... 5 = 5x
             
             // Show loading
             loadingSpinner.style.display = 'flex';
@@ -779,35 +800,41 @@
             img.onload = function() {
                 posterContainer.innerHTML = `
                     <img src="${img.src}" alt="${img.alt}" class="poster-image" id="poster-img">
-                    <p class="poster-caption">Charcot-Marie-Tooth Disease overview – click image or use zoom button (5x)</p>
+                    <p class="poster-caption">Charcot-Marie-Tooth Disease overview – click button to cycle zoom 1x → 5x</p>
                 `;
                 loadingSpinner.style.display = 'none';
                 posterContainer.style.display = 'block';
 
                 const posterImg = document.getElementById('poster-img');
-                if (posterImg) {
-                    // Click on image toggles 5x zoom
-                    posterImg.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        this.classList.toggle('zoomed');
-                        if (this.classList.contains('zoomed')) {
-                            zoomBtn.innerHTML = '<i class="fas fa-search-minus"></i> Zoom out (5x)';
-                        } else {
-                            zoomBtn.innerHTML = '<i class="fas fa-search-plus"></i> Zoom (5x)';
-                        }
-                    });
-
-                    // Zoom button toggles 5x zoom
-                    zoomBtn.addEventListener('click', function() {
-                        if (posterImg.classList.contains('zoomed')) {
-                            posterImg.classList.remove('zoomed');
-                            zoomBtn.innerHTML = '<i class="fas fa-search-plus"></i> Zoom (5x)';
-                        } else {
-                            posterImg.classList.add('zoomed');
-                            zoomBtn.innerHTML = '<i class="fas fa-search-minus"></i> Zoom out (5x)';
-                        }
-                    });
+                
+                // Function to update zoom level and display
+                function setZoomLevel(level) {
+                    // Remove all zoom-level classes
+                    posterImg.classList.remove('zoom-level-1', 'zoom-level-2', 'zoom-level-3', 'zoom-level-4', 'zoom-level-5');
+                    // Add the new class
+                    posterImg.classList.add(`zoom-level-${level}`);
+                    // Update display
+                    zoomLevelDisplay.innerHTML = `<i class="fas fa-search"></i> ${level}x`;
+                    currentZoomLevel = level;
                 }
+
+                // Initialize at 1x
+                setZoomLevel(1);
+
+                // Zoom button cycles through levels 1-5
+                zoomBtn.addEventListener('click', function() {
+                    let nextLevel = currentZoomLevel + 1;
+                    if (nextLevel > 5) nextLevel = 1;
+                    setZoomLevel(nextLevel);
+                });
+
+                // Optional: click on image also cycles (feel free to remove if not wanted)
+                posterImg.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    let nextLevel = currentZoomLevel + 1;
+                    if (nextLevel > 5) nextLevel = 1;
+                    setZoomLevel(nextLevel);
+                });
             };
 
             img.onerror = function() {
@@ -822,6 +849,7 @@
                 zoomBtn.disabled = true;
                 zoomBtn.style.opacity = 0.5;
                 zoomBtn.style.cursor = 'not-allowed';
+                zoomLevelDisplay.style.opacity = 0.5;
             };
         })();
 
