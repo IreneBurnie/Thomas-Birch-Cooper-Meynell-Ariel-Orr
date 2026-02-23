@@ -374,7 +374,7 @@
             text-decoration: underline;
         }
         
-        /* --- NEW: Poster embed section (matching slideshow style) --- */
+        /* --- Poster embed section (bigger, with zoom, no comments) --- */
         .poster-embed {
             background-color: white;
             border-radius: 15px;
@@ -399,31 +399,66 @@
             padding-bottom: 0;
         }
 
+        .poster-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .zoom-btn {
+            background-color: #e91e63;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        .zoom-btn:hover {
+            background-color: #f06292;
+        }
+
         .poster-display {
             background-color: #fafafa;
             border-radius: 10px;
             padding: 20px;
-            min-height: 400px;
+            min-height: 600px; /* bigger than before */
             border: 1px solid #fce4ec;
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
+            transition: all 0.2s ease;
+            overflow: auto; /* allow scrolling if zoomed */
         }
 
         .poster-image-container {
             max-width: 100%;
             text-align: center;
             width: 100%;
+            transition: transform 0.2s ease;
+            transform-origin: center center;
         }
 
         .poster-image {
             max-width: 100%;
-            max-height: 500px;
+            max-height: 550px; /* increased from 500px */
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             display: block;
             margin: 0 auto;
+            cursor: zoom-in;
+            transition: all 0.2s ease;
+        }
+
+        .poster-image.zoomed {
+            cursor: zoom-out;
+            transform: scale(1.5); /* zoom factor */
         }
 
         .poster-caption {
@@ -539,6 +574,10 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
+
+            .poster-display {
+                min-height: 400px;
+            }
         }
     </style>
 </head>
@@ -552,16 +591,18 @@
     
     <div class="container">
 
-        <!-- NEW: Poster embed section (like slideshow, just a spot for JPEG) -->
+        <!-- Poster embed section - bigger, with zoom, no instructional comments -->
         <div class="poster-embed">
             <div class="poster-header">
-                <h2><i class="fas fa-image" style="color: #e91e63;"></i> CMT Poster (JPEG)</h2>
-                <span style="background-color: #fce4ec; padding: 4px 12px; border-radius: 30px; color:#e91e63; font-weight:600;">
-                    <i class="fas fa-download"></i> Place your "Charcot-Marie-Tooth Poster.jpg" here
-                </span>
+                <h2><i class="fas fa-image" style="color: #e91e63;"></i> CMT Poster</h2>
+                <div class="poster-controls">
+                    <button class="zoom-btn" id="zoom-poster-btn">
+                        <i class="fas fa-search-plus"></i> Zoom
+                    </button>
+                </div>
             </div>
 
-            <div class="poster-display">
+            <div class="poster-display" id="poster-display">
                 <div class="poster-loading" id="poster-loading">
                     <i class="fas fa-spinner fa-spin"></i>
                 </div>
@@ -572,15 +613,12 @@
 
                 <div class="poster-error" id="poster-error">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <p>Poster image not found. Please name your file <strong>Charcot-Marie-Tooth Poster.jpg</strong> and place it in the same folder as this HTML file.</p>
+                    <p>Poster image not found. Please name your file <strong>Charcot-Marie-Tooth Poster.jpg</strong> and place it in the same folder.</p>
                 </div>
             </div>
-
-            <!-- Simple caption / note (optional) -->
-            <p style="text-align:center; margin-top:10px; color:#888;"><i class="fas fa-info-circle"></i> Poster content: overview of CMT, symptoms, and inclusive practices.</p>
         </div>
 
-        <!-- Image Slideshow -->
+        <!-- Image Slideshow (unchanged) -->
         <div class="slideshow-container">
             <div class="slideshow-header">
                 <h2>CMT Information Slides</h2>
@@ -616,14 +654,14 @@
                 <!-- Thumbnails will be dynamically generated here -->
             </div>
             
-            <!-- Podcast + Kahoot links (kahoot placed right next to podcast) -->
+            <!-- Podcast + Kahoot links (unchanged, kahoot right next to podcast) -->
             <div class="instructions">
                 <div class="link-item">
                     <i class="fas fa-podcast"></i>
                     <span><strong>Podcast:</strong> <a href="#" target="_blank">Click here to listen</a> (insert link)</span>
                 </div>
                 <div class="link-item">
-                    <i class="fab fa-kaggle"></i> <!-- using kaggle icon as placeholder for Kahoot (no official kahoot icon in free set) -->
+                    <i class="fab fa-kaggle"></i> <!-- using kaggle icon as placeholder for Kahoot -->
                     <span><strong>Kahoot!</strong> <a href="#" target="_blank">Play learning game</a> (insert link)</span>
                 </div>
             </div>
@@ -704,11 +742,12 @@
     </footer>
     
     <script>
-        // --- Poster loader (simple, just like slide loader but for one image) ---
+        // --- Poster loader with zoom functionality ---
         (function loadPoster() {
             const posterContainer = document.getElementById('poster-image-container');
             const loadingSpinner = document.getElementById('poster-loading');
             const errorDiv = document.getElementById('poster-error');
+            const zoomBtn = document.getElementById('zoom-poster-btn');
             
             // Show loading
             loadingSpinner.style.display = 'flex';
@@ -716,30 +755,62 @@
             errorDiv.style.display = 'none';
 
             const img = new Image();
-            // The exact filename you requested: "Charcot-Marie-Tooth Poster.jpg"
+            // Exact filename requested
             img.src = 'Charcot-Marie-Tooth Poster.jpg';
             img.alt = 'CMT Informational Poster';
             img.className = 'poster-image';
+            img.id = 'poster-img';
 
             img.onload = function() {
                 posterContainer.innerHTML = `
-                    <img src="${img.src}" alt="${img.alt}" class="poster-image">
-                    <p class="poster-caption">Charcot-Marie-Tooth Disease overview – click to expand (JPEG embedded)</p>
+                    <img src="${img.src}" alt="${img.alt}" class="poster-image" id="poster-img">
+                    <p class="poster-caption">Charcot-Marie-Tooth Disease overview – click image or use zoom button</p>
                 `;
                 loadingSpinner.style.display = 'none';
                 posterContainer.style.display = 'block';
+
+                // Re-attach zoom functionality after image is loaded
+                const posterImg = document.getElementById('poster-img');
+                if (posterImg) {
+                    // Click on image toggles zoom
+                    posterImg.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        this.classList.toggle('zoomed');
+                        // Update button icon/text
+                        if (this.classList.contains('zoomed')) {
+                            zoomBtn.innerHTML = '<i class="fas fa-search-minus"></i> Zoom out';
+                        } else {
+                            zoomBtn.innerHTML = '<i class="fas fa-search-plus"></i> Zoom';
+                        }
+                    });
+
+                    // Zoom button toggles zoom
+                    zoomBtn.addEventListener('click', function() {
+                        if (posterImg.classList.contains('zoomed')) {
+                            posterImg.classList.remove('zoomed');
+                            zoomBtn.innerHTML = '<i class="fas fa-search-plus"></i> Zoom';
+                        } else {
+                            posterImg.classList.add('zoomed');
+                            zoomBtn.innerHTML = '<i class="fas fa-search-minus"></i> Zoom out';
+                        }
+                    });
+                }
             };
 
             img.onerror = function() {
                 loadingSpinner.style.display = 'none';
                 errorDiv.style.display = 'block';
-                // optional placeholder
+                // Show placeholder
                 posterContainer.innerHTML = `<div class="poster-placeholder">
                     <i class="fas fa-image"></i>
-                    <p>JPEG poster placeholder</p>
-                    <p style="font-size:0.8rem;">Rename your file to <strong>Charcot-Marie-Tooth Poster.jpg</strong></p>
+                    <p>Poster image will appear here</p>
+                    <p style="font-size:0.8rem;">Place your file: <strong>Charcot-Marie-Tooth Poster.jpg</strong></p>
                 </div>`;
                 posterContainer.style.display = 'block';
+                // Disable zoom button if image missing
+                zoomBtn.disabled = true;
+                zoomBtn.style.opacity = 0.5;
+                zoomBtn.style.cursor = 'not-allowed';
             };
         })();
 
