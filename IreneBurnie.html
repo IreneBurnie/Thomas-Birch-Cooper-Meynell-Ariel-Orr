@@ -386,7 +386,7 @@
             text-decoration: underline;
         }
         
-        /* --- Poster embed section (bigger, with 5-level zoom) --- */
+        /* --- Poster embed section (bigger, with 5-level zoom AND panning) --- */
         .poster-embed {
             background-color: white;
             border-radius: 15px;
@@ -454,39 +454,39 @@
             padding: 20px;
             min-height: 600px;
             border: 1px solid #fce4ec;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             position: relative;
-            transition: all 0.2s ease;
-            overflow: auto;
+            overflow: hidden; /* hide overflow, we'll handle panning internally */
+            cursor: grab;
+        }
+
+        .poster-display.panning {
+            cursor: grabbing;
         }
 
         .poster-image-container {
-            max-width: 100%;
-            text-align: center;
-            width: 100%;
-            transition: transform 0.2s ease;
-            transform-origin: center center;
+            position: relative;
+            display: inline-block;
+            transform-origin: 0 0; /* top-left origin for easier pan math */
+            transition: transform 0.1s ease;
+            will-change: transform;
+            /* allow container to be larger than poster-display when zoomed */
         }
 
         .poster-image {
-            max-width: 100%;
-            max-height: 550px;
+            display: block;
+            max-width: none; /* remove max-width constraint to allow full resolution */
+            width: auto;
+            height: auto;
+            max-height: 550px; /* initial max-height for unzoomed view */
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            display: block;
-            margin: 0 auto;
-            cursor: zoom-in;
-            transition: transform 0.2s ease;
+            pointer-events: none; /* let mouse events pass through to container for dragging */
         }
 
-        /* Zoom levels 1-5 applied via inline style in JS */
-        .poster-image.zoom-level-1 { transform: scale(1); }
-        .poster-image.zoom-level-2 { transform: scale(2); }
-        .poster-image.zoom-level-3 { transform: scale(3); }
-        .poster-image.zoom-level-4 { transform: scale(4); }
-        .poster-image.zoom-level-5 { transform: scale(5); }
+        /* When zoomed, we remove the max-height so image can be full size */
+        .poster-image-container.zoomed .poster-image {
+            max-height: none;
+        }
 
         .poster-caption {
             margin-top: 15px;
@@ -618,7 +618,7 @@
     
     <div class="container">
 
-        <!-- Poster embed section - bigger, with 5-level zoom (1x to 5x) -->
+        <!-- Poster embed section - bigger, with 5-level zoom AND panning -->
         <div class="poster-embed">
             <div class="poster-header">
                 <h2><i class="fas fa-image" style="color: #e91e63;"></i> CMT Poster</h2>
@@ -776,8 +776,9 @@
     </footer>
     
     <script>
-        // --- Poster loader with 5-level zoom (cycles 1x → 2x → 3x → 4x → 5x → back to 1x) ---
+        // --- Poster loader with 5-level zoom AND panning ---
         (function loadPoster() {
+            const posterDisplay = document.getElementById('poster-display');
             const posterContainer = document.getElementById('poster-image-container');
             const loadingSpinner = document.getElementById('poster-loading');
             const errorDiv = document.getElementById('poster-error');
@@ -786,6 +787,11 @@
             
             let currentZoomLevel = 1; // 1 = 1x, 2 = 2x, ... 5 = 5x
             
+            // Panning variables
+            let isPanning = false;
+            let startX, startY;
+            let currentX = 0, currentY = 0; // in pixels (transform translate)
+
             // Show loading
             loadingSpinner.style.display = 'flex';
             posterContainer.style.display = 'none';
@@ -800,22 +806,39 @@
             img.onload = function() {
                 posterContainer.innerHTML = `
                     <img src="${img.src}" alt="${img.alt}" class="poster-image" id="poster-img">
-                    <p class="poster-caption">Charcot-Marie-Tooth Disease overview – click button to cycle zoom 1x → 5x</p>
                 `;
                 loadingSpinner.style.display = 'none';
-                posterContainer.style.display = 'block';
+                posterContainer.style.display = 'inline-block'; // container wraps image
 
                 const posterImg = document.getElementById('poster-img');
                 
-                // Function to update zoom level and display
+                // Function to update zoom level and container transform
                 function setZoomLevel(level) {
-                    // Remove all zoom-level classes
-                    posterImg.classList.remove('zoom-level-1', 'zoom-level-2', 'zoom-level-3', 'zoom-level-4', 'zoom-level-5');
-                    // Add the new class
-                    posterImg.classList.add(`zoom-level-${level}`);
+                    currentZoomLevel = level;
+                    
+                    // Update container transform: scale(level) then translate
+                    updateContainerTransform();
+                    
                     // Update display
                     zoomLevelDisplay.innerHTML = `<i class="fas fa-search"></i> ${level}x`;
-                    currentZoomLevel = level;
+                    
+                    // Add/remove zoomed class to control image max-height
+                    if (level > 1) {
+                        posterContainer.classList.add('zoomed');
+                    } else {
+                        posterContainer.classList.remove('zoomed');
+                        // Reset pan position when back to 1x
+                        currentX = 0;
+                        currentY = 0;
+                        updateContainerTransform();
+                    }
+                }
+
+                // Helper to apply current transform
+                function updateContainerTransform() {
+                    const scale = currentZoomLevel;
+                    // translate must be applied before scale for correct coordinates
+                    posterContainer.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`;
                 }
 
                 // Initialize at 1x
@@ -828,8 +851,48 @@
                     setZoomLevel(nextLevel);
                 });
 
-                // Optional: click on image also cycles (feel free to remove if not wanted)
-                posterImg.addEventListener('click', function(e) {
+                // --- Panning implementation ---
+                posterDisplay.addEventListener('mousedown', (e) => {
+                    // Only enable panning if zoomed > 1
+                    if (currentZoomLevel <= 1) return;
+                    
+                    e.preventDefault(); // prevent text selection
+                    isPanning = true;
+                    posterDisplay.classList.add('panning');
+                    
+                    // Get initial mouse position
+                    startX = e.clientX - currentX;
+                    startY = e.clientY - currentY;
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!isPanning) return;
+                    
+                    e.preventDefault();
+                    
+                    // Calculate new position
+                    currentX = e.clientX - startX;
+                    currentY = e.clientY - startY;
+                    
+                    // Apply bounds to keep image within view (optional, can be removed to allow any pan)
+                    // For now, we allow any pan; user can drag anywhere.
+                    
+                    updateContainerTransform();
+                });
+
+                window.addEventListener('mouseup', () => {
+                    isPanning = false;
+                    posterDisplay.classList.remove('panning');
+                });
+
+                // Optional: mouse leave also stops panning
+                posterDisplay.addEventListener('mouseleave', () => {
+                    isPanning = false;
+                    posterDisplay.classList.remove('panning');
+                });
+
+                // Optional: click on image cycles zoom (consistent with earlier behavior, but now with pan)
+                posterImg.addEventListener('click', (e) => {
                     e.stopPropagation();
                     let nextLevel = currentZoomLevel + 1;
                     if (nextLevel > 5) nextLevel = 1;
